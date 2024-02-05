@@ -39,6 +39,8 @@ $ npm install
 
 ### Configure o arquivo .env
 
+##### Adicione as configurações de variável de ambiente
+
 ```
 Crie um arquivo .env na raiz do projeto e copie o conteúdo do arquivo .env.example para ele.
 ```
