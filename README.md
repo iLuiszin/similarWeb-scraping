@@ -40,7 +40,7 @@ $ npm install
 ### Configure o arquivo .env
 
 ```
-Crie um arquivo `.env` na raiz do projeto e copie o conteúdo do arquivo `.env.example` para ele.
+Crie um arquivo .env na raiz do projeto e copie o conteúdo do arquivo .env.example para ele.
 ```
 
 ### Criação do Banco de Dados
