@@ -10,6 +10,8 @@ module.exports = function returnUrls(domain) {
     `https://pro.similarweb.com/widgetApi/WebsiteOverviewDesktop/TrafficSourcesOverview/PieChart?country=999&webSource=Desktop&keys=${domain}&from=2023%7C10%7C01&to=2023%7C12%7C31&isWindow=false&includeSubDomains=true`,
     `https://pro.similarweb.com/widgetApi/TrafficSourcesSearch/SearchBrandedKeywordsWorldWide/WebsitePerformance/PieChart?country=999&from=2023%7C10%7C01&includeSubDomains=true&isWindow=false&keys=${domain}&to=2023%7C12%7C31&webSource=Total&timeGranularity=Monthly`,
     `https://pro.similarweb.com/widgetApi/WebsiteOverviewDesktop/TopAdNetworks/PieChart?country=999&from=2023%7C10%7C01&includeSubDomains=true&isWindow=false&keys=${domain}&timeGranularity=Monthly&to=2023%7C12%7C31&webSource=Desktop&orderBy=Share%20desc`,
+    `https://pro.similarweb.com/widgetApi/SearchKeywords/NewSearchKeywordsWorldWide/WebsitePerformance/Table?country=999&from=2023%7C10%7C01&includeSubDomains=true&isWindow=false&keys=${domain}&to=2023%7C12%7C31&webSource=Total&IncludeOrganic=true&pageSize=5&timeGranularity=Monthly`,
+    `https://pro.similarweb.com/widgetApi/WebsiteOverviewDesktop/TopIncomingAds/Table?appMode=single&country=999&from=2023%7C10%7C01&includeSubDomains=true&isWindow=false&keys=${domain}&timeGranularity=Monthly&to=2023%7C12%7C31&pageSize=5&webSource=Desktop&orderBy=Share%20desc`,
   ]
 
   return urls

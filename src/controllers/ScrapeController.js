@@ -1,5 +1,6 @@
 const WebSite = require('../models/WebSite')
 const returnUrls = require('../helpers/returnUrls')
+const formatKeys = require('../helpers/formatKeys')
 const axios = require('axios')
 
 module.exports = class ScrapeController {
@@ -32,7 +33,7 @@ module.exports = class ScrapeController {
       const match = url.match(/key=([^&]+)/)
       const domain = match ? match[1] : url.split('/')[3]
 
-      const webSite = await WebSite.findOne({ siteName: domain })
+      const webSite = await WebSite.findOne({ name: domain })
 
       if (!webSite) {
         return res.status(404).json({ message: 'Site não encontrado.' })
@@ -47,6 +48,7 @@ module.exports = class ScrapeController {
   static async saveInfo(req, res) {
     // #swagger.tags = ['Scrape SimilarWeb']
     try {
+      await WebSite.deleteMany()
       let { url } = req.body
 
       if (!url || !url.includes('similarweb.com')) {
@@ -62,7 +64,7 @@ module.exports = class ScrapeController {
       const match = url.match(/key=([^&]+)/)
       const domain = match ? match[1] : url.split('/')[3]
 
-      const webSiteExists = await WebSite.findOne({ siteName: domain })
+      const webSiteExists = await WebSite.findOne({ name: domain })
 
       if (webSiteExists) {
         return res.status(200).json({
@@ -75,6 +77,7 @@ module.exports = class ScrapeController {
       let fullData = {}
 
       for (const url of urls) {
+        const metric = url.split('/')[5]
         const { data } = await axios.get(url, {
           headers: {
             'User-Agent': process.env.USER_AGENT,
@@ -82,18 +85,32 @@ module.exports = class ScrapeController {
           },
         })
 
-        const savedData = data.Data[domain]
+        let savedData = data.Data[domain]
 
-        fullData = { ...fullData, ...savedData }
+        if (!savedData) {
+          if (data.Data.length === 1) {
+            savedData = data.Data[0]
+          } else {
+            savedData = []
+            for (const item in data.Data) {
+              savedData.push(data.Data[item])
+            }
+          }
+        }
+
+        fullData[metric] = { ...savedData, ...fullData[metric] }
       }
 
-      fullData.siteName = domain
+      fullData = formatKeys(fullData)
+      fullData.name = domain
+      fullData.url = `https://similarweb.com/website/${domain}/`
 
       const webSite = new WebSite(fullData)
       const newWebSite = await webSite.save()
 
       return res.status(201).json({
         message: 'Informações salvas com sucesso.',
+        data: fullData,
         id: newWebSite._id,
       })
     } catch (error) {
