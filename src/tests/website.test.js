@@ -27,7 +27,5 @@ describe('WebSite', () => {
       .get(`/get_info/${id}`)
       .send()
       .expect(200)
-
-    console.log(response.body)
   })
 })
