@@ -1,4 +1,8 @@
-module.exports = function returnUrls(domain) {
+const WebSite = require('../models/WebSite')
+const axios = require('axios')
+const formatKeys = require('./formatKeys')
+
+function returnUrls(domain) {
   const urls = [
     `https://pro.similarweb.com/widgetApi/WebsiteOverview/EngagementVisits/SingleMetric?country=999&from=2023%7C10%7C01&to=2023%7C12%7C31&includeSubDomains=true&isWindow=false&keys=${domain}&timeGranularity=Monthly&webSource=Total&ShouldGetVerifiedData=false`,
     `https://pro.similarweb.com/widgetApi/WebsiteOverview/WebRanks/SingleMetric?country=999&from=2023%7C10%7C01&to=2023%7C12%7C31&includeSubDomains=true&isWindow=false&keys=${domain}&timeGranularity=Monthly&webSource=Total`,
@@ -15,4 +19,77 @@ module.exports = function returnUrls(domain) {
   ]
 
   return urls
+}
+
+function isValidUrl(url) {
+  return url && url.includes('similarweb.com')
+}
+
+function extractDomain(url) {
+  if (url.includes('https://')) {
+    url = url.replace('https://', '')
+  }
+  const match = url.match(/key=([^&]+)/)
+  return match ? match[1] : url.split('/')[3]
+}
+
+async function fetchDataForDomain(domain) {
+  const urls = returnUrls(domain)
+  let fullData = {}
+
+  for (const url of urls) {
+    const metric = url.split('/')[5]
+    const { data } = await axios.get(url, {
+      headers: {
+        'User-Agent': process.env.USER_AGENT,
+        Cookie: process.env.COOKIE,
+      },
+    })
+
+    let savedData = data.Data[domain]
+
+    if (!savedData) {
+      savedData =
+        data.Data.length === 1 ? data.Data[0] : Object.values(data.Data)
+    }
+
+    fullData[metric] = { ...savedData, ...fullData[metric] }
+  }
+
+  return formatKeys({
+    ...fullData,
+    name: domain,
+    url: `https://similarweb.com/website/${domain}/`,
+  })
+}
+
+async function saveWebSiteToDatabase(fullData) {
+  const webSite = new WebSite(fullData)
+  return await webSite.save()
+}
+
+async function getWebSiteById(res, id) {
+  const webSite = await WebSite.findById(id)
+
+  if (!webSite) {
+    return res.status(404).json({ message: 'Site não encontrado.' })
+  }
+
+  return res.status(200).json(webSite)
+}
+
+async function getWebSiteByDomain(domain) {
+  const webSite = await WebSite.findOne({ name: domain })
+
+  return webSite
+}
+
+module.exports = {
+  extractDomain,
+  fetchDataForDomain,
+  saveWebSiteToDatabase,
+  returnUrls,
+  isValidUrl,
+  getWebSiteByDomain,
+  getWebSiteById,
 }

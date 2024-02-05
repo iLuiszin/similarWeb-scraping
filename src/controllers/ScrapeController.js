@@ -1,39 +1,31 @@
-const WebSite = require('../models/WebSite')
-const returnUrls = require('../helpers/returnUrls')
-const formatKeys = require('../helpers/formatKeys')
-const axios = require('axios')
+const {
+  extractDomain,
+  getWebSiteByDomain,
+  fetchDataForDomain,
+  saveWebSiteToDatabase,
+  isValidUrl,
+  getWebSiteById,
+} = require('../helpers/utilFunctions')
 
 module.exports = class ScrapeController {
   static async getInfo(req, res) {
     // #swagger.tags = ['Scrape SimilarWeb']
     try {
-      let { url } = req.body
+      const { url } = req.body
       const { id } = req.params
 
       if (id) {
-        const webSite = await WebSite.findById(id)
-
-        if (!webSite) {
-          return res.status(404).json({ message: 'Site não encontrado.' })
-        }
-
-        return res.status(200).json(webSite)
+        return await getWebSiteById(res, id)
       }
 
-      if (!url || !url.includes('similarweb.com')) {
+      if (!isValidUrl(url)) {
         return res
           .status(400)
           .json({ message: 'A URL deve ser do site similarweb.com.' })
       }
 
-      if (url.includes('https://')) {
-        url = url.replace('https://', '')
-      }
-
-      const match = url.match(/key=([^&]+)/)
-      const domain = match ? match[1] : url.split('/')[3]
-
-      const webSite = await WebSite.findOne({ name: domain })
+      const domain = extractDomain(url)
+      const webSite = await getWebSiteByDomain(domain)
 
       if (!webSite) {
         return res.status(404).json({ message: 'Site não encontrado.' })
@@ -48,69 +40,29 @@ module.exports = class ScrapeController {
   static async saveInfo(req, res) {
     // #swagger.tags = ['Scrape SimilarWeb']
     try {
-      await WebSite.deleteMany()
-      let { url } = req.body
+      const { url } = req.body
 
-      if (!url || !url.includes('similarweb.com')) {
+      if (!isValidUrl(url)) {
         return res
           .status(400)
           .json({ message: 'A URL deve ser do site similarweb.com.' })
       }
 
-      if (url.includes('https://')) {
-        url = url.replace('https://', '')
+      const domain = extractDomain(url)
+      const webSite = await getWebSiteByDomain(domain)
+
+      if (webSite) {
+        return res
+          .status(200)
+          .json({ message: 'Este site já se encontra no banco de dados.' })
       }
 
-      const match = url.match(/key=([^&]+)/)
-      const domain = match ? match[1] : url.split('/')[3]
+      const fullData = await fetchDataForDomain(domain)
 
-      const webSiteExists = await WebSite.findOne({ name: domain })
-
-      if (webSiteExists) {
-        return res.status(200).json({
-          message: 'Este site já se encontra no banco de dados.',
-          id: webSiteExists._id,
-        })
-      }
-
-      const urls = returnUrls(domain)
-      let fullData = {}
-
-      for (const url of urls) {
-        const metric = url.split('/')[5]
-        const { data } = await axios.get(url, {
-          headers: {
-            'User-Agent': process.env.USER_AGENT,
-            Cookie: process.env.COOKIE,
-          },
-        })
-
-        let savedData = data.Data[domain]
-
-        if (!savedData) {
-          if (data.Data.length === 1) {
-            savedData = data.Data[0]
-          } else {
-            savedData = []
-            for (const item in data.Data) {
-              savedData.push(data.Data[item])
-            }
-          }
-        }
-
-        fullData[metric] = { ...savedData, ...fullData[metric] }
-      }
-
-      fullData = formatKeys(fullData)
-      fullData.name = domain
-      fullData.url = `https://similarweb.com/website/${domain}/`
-
-      const webSite = new WebSite(fullData)
-      const newWebSite = await webSite.save()
+      const newWebSite = await saveWebSiteToDatabase(fullData)
 
       return res.status(201).json({
         message: 'Informações salvas com sucesso.',
-        data: fullData,
         id: newWebSite._id,
       })
     } catch (error) {
