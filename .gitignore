@@ -1,0 +1,4 @@
+node_modules
+swagger/swagger_output.json
+.env
+nodemon.json
